@@ -62,35 +62,56 @@
     (when editor-win
       (select-window editor-win))))
 
+(defun my/startup-default-directory ()
+  "Get the default-directory from the first real buffer (e.g. dired from CLI arg)."
+  (let ((dir nil))
+    (dolist (buf (buffer-list))
+      (with-current-buffer buf
+        (when (and (not dir)
+                   (not (string-prefix-p " " (buffer-name)))
+                   (not (string-prefix-p "*" (buffer-name))))
+          (setq dir default-directory))))
+    (or dir default-directory)))
+
 (defun my/setup-startup-layout ()
-  "Build the startup layout: treemacs | (editor + magit) / terminal."
+  "Build the startup layout: treemacs | (editor + magit) / terminal.
+Works for both local and TRAMP remote directories."
   (delete-other-windows)
+  (let ((dir (my/startup-default-directory)))
 
-  ;; 1. Treemacs on left
-  (when (fboundp 'treemacs)
-    (treemacs))
+    ;; 1. Treemacs on left (with correct directory)
+    (when (fboundp 'treemacs)
+      (let ((default-directory dir))
+        (treemacs)
+        ;; Remove all existing projects and add only the target
+        (treemacs-block
+         (dolist (proj (treemacs-workspace->projects (treemacs-current-workspace)))
+           (treemacs-do-remove-project-from-workspace proj)))
+        (treemacs-do-add-project-to-workspace
+         dir (file-name-nondirectory (directory-file-name dir)))))
 
-  ;; 2. Save editor window reference
-  (my/focus-editor-window)
-  (let ((editor-win (selected-window)))
+    ;; 2. Save editor window reference
+    (my/focus-editor-window)
+    (let ((editor-win (selected-window)))
 
-    ;; 3. Split bottom for terminal
-    (let ((term-height (floor (* (window-height) 0.2))))
-      (split-window-below (- (window-height) term-height))
-      (other-window 1)
-      (when (fboundp 'vterm)
-        (vterm "shell")
-        (evil-normal-state)))
+      ;; 3. Split bottom for terminal
+      (let ((term-height (floor (* (window-height) 0.2))))
+        (split-window-below (- (window-height) term-height))
+        (other-window 1)
+        (when (fboundp 'vterm)
+          (vterm "shell")
+          (evil-normal-state)))
 
-    ;; 4. Go back to saved editor window, split right for magit
-    (select-window editor-win)
-    (let ((magit-win (split-window-right)))
-      (with-selected-window magit-win
-        (magit-status-setup-buffer (or (magit-toplevel) default-directory)))))
+      ;; 4. Go back to saved editor window, split right for magit
+      (select-window editor-win)
+      (let ((default-directory dir))
+        (let ((magit-win (split-window-right)))
+          (with-selected-window magit-win
+            (magit-status-setup-buffer (or (magit-toplevel) dir))))))
 
-  ;; 5. Focus treemacs
-  (when-let ((tw (treemacs-get-local-window)))
-    (select-window tw)))
+    ;; 5. Focus treemacs
+    (when-let ((tw (treemacs-get-local-window)))
+      (select-window tw))))
 
 ;; Run layout AFTER dashboard finishes (dashboard uses emacs-startup-hook too)
 (add-hook 'emacs-startup-hook

@@ -15,6 +15,11 @@
   :config
   (global-diff-hl-mode)
   (diff-hl-flydiff-mode)
+  ;; Disable diff-hl on TRAMP buffers (avoids SVN detection errors)
+  (add-hook 'diff-hl-mode-hook
+            (lambda ()
+              (when (and buffer-file-name (file-remote-p buffer-file-name))
+                (diff-hl-mode -1))))
   (add-hook 'magit-pre-refresh-hook 'diff-hl-magit-pre-refresh)
   (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
   ;; Show in margin in terminal

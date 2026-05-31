@@ -52,7 +52,8 @@
 (global-auto-revert-mode 1)
 (setq auto-revert-interval 1
       auto-revert-check-vc-info t
-      global-auto-revert-non-file-buffers t)
+      global-auto-revert-non-file-buffers t
+      auto-revert-remote-files nil)
 
 ;; Electric pair mode (autopairs)
 (electric-pair-mode 1)
