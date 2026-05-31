@@ -7,9 +7,13 @@
   :config
   (setq vterm-max-scrollback 10000
         vterm-timer-delay 0.01)
-  ;; Use evil normal mode with C-\ C-n like Neovim terminal
+  ;; C-h/j/k/l でターミナルから直接ウィンドウ移動（Neovim と同じ）
   (evil-define-key 'insert vterm-mode-map
-    (kbd "C-\\ C-n") 'vterm-send-escape))
+    (kbd "C-\\ C-n") 'vterm-send-escape
+    (kbd "C-h") #'evil-window-left
+    (kbd "C-j") #'evil-window-down
+    (kbd "C-k") #'evil-window-up
+    (kbd "C-l") #'evil-window-right))
 
 ;; Vterm-toggle (like toggleterm toggle behavior)
 (use-package vterm-toggle
