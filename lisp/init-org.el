@@ -59,17 +59,18 @@
           (lambda ()
             (add-hook 'after-save-hook #'my/latex-compile-and-clean nil t)))
 
-;; --- PDF viewer ---
-(use-package pdf-tools
-  :mode ("\\.pdf\\'" . pdf-view-mode)
-  :config
-  (pdf-tools-install :no-query)
-  (setq pdf-view-display-size 'fit-page
-        pdf-view-use-scaling t)
-  (add-hook 'pdf-view-mode-hook
-            (lambda ()
-              (display-line-numbers-mode -1)
-              (pdf-view-midnight-minor-mode -1)
-              (pdf-view-fit-page-to-window))))
+;; --- PDF viewer (GUI only) ---
+(when (display-graphic-p)
+  (use-package pdf-tools
+    :mode ("\\.pdf\\'" . pdf-view-mode)
+    :config
+    (pdf-tools-install :no-query)
+    (setq pdf-view-display-size 'fit-page
+          pdf-view-use-scaling t)
+    (add-hook 'pdf-view-mode-hook
+              (lambda ()
+                (display-line-numbers-mode -1)
+                (pdf-view-midnight-minor-mode -1)
+                (pdf-view-fit-page-to-window)))))
 
 (provide 'init-org)
