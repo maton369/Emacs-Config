@@ -49,5 +49,6 @@
         init-notebook
         init-org
         init-ai
+        init-devcontainer
         init-keybindings
         init-utils))
