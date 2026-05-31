@@ -102,12 +102,17 @@ Works for both local and TRAMP remote directories."
           (vterm "shell")
           (evil-normal-state)))
 
-      ;; 4. Go back to saved editor window, split right for magit
+      ;; 4. Go back to saved editor window, split right for Claude Code + Magit
       (select-window editor-win)
       (let ((default-directory dir))
-        (let ((magit-win (split-window-right)))
-          (with-selected-window magit-win
-            (magit-status-setup-buffer (or (magit-toplevel) dir))))))
+        (let ((right-win (split-window-right)))
+          (with-selected-window right-win
+            ;; Create magit buffer first (accessible via H/L tab switch)
+            (magit-status-setup-buffer (or (magit-toplevel) dir))
+            ;; Open Claude Code vterm on top
+            (vterm "claude-code")
+            (vterm-send-string "claude")
+            (vterm-send-return)))))
 
     ;; 5. Focus treemacs
     (when-let ((tw (treemacs-get-local-window)))
