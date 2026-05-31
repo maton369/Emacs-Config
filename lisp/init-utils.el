@@ -200,9 +200,10 @@ Works for both local and TRAMP remote directories."
      "o" "Step out"
      "c" "Continue")
     (treemacs-mode
+     "H" "Root up"
+     "L" "Root down"
      "SPC gs" "Git status"
      "SPC e" "Toggle"
-     "C-l" "Editor"
      "?" "Help")
     (my/git-panel-mode
      "SPC gs" "Files"
