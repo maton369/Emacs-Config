@@ -94,7 +94,7 @@ Works for both local and TRAMP remote directories."
     (my/focus-editor-window)
     (let ((editor-win (selected-window)))
 
-      ;; 3. Split bottom for terminal
+      ;; 3. Split bottom for shared terminal
       (let ((term-height (floor (* (window-height) 0.2))))
         (split-window-below (- (window-height) term-height))
         (other-window 1)
@@ -102,12 +102,12 @@ Works for both local and TRAMP remote directories."
           (vterm "shell")
           (evil-normal-state)))
 
-      ;; 4. Go back to saved editor window, split right for Claude Code + Magit
+      ;; 4. Split editor right for Claude Code
       (select-window editor-win)
       (let ((default-directory dir))
         (let ((right-win (split-window-right)))
           (with-selected-window right-win
-            ;; Create magit buffer first (accessible via H/L tab switch)
+            ;; Create magit buffer (accessible via H/L tab switch)
             (magit-status-setup-buffer (or (magit-toplevel) dir))
             ;; Open Claude Code vterm on top
             (vterm "claude-code")
