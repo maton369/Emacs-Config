@@ -7,10 +7,8 @@
   :config
   (setq vterm-max-scrollback 10000
         vterm-timer-delay 0.01)
-  ;; C-c C-n を vterm の例外キーに追加（ターミナルに送らずEmacsが処理）
-  (add-to-list 'vterm-keymap-exceptions "C-c C-n")
-  ;; C-c C-n で vterm からエディタウィンドウへ移動
-  (define-key vterm-mode-map (kbd "C-c C-n")
+  ;; C-x o で vterm からエディタウィンドウへ移動
+  (define-key vterm-mode-map (kbd "C-x o")
     (lambda () (interactive)
       (evil-normal-state)
       (my/focus-editor-window))))
