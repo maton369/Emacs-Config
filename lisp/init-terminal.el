@@ -7,11 +7,9 @@
   :config
   (setq vterm-max-scrollback 10000
         vterm-timer-delay 0.01)
-  ;; C-c C-n で normal モードに抜ける（C-\ C-n の代替）
-  ;; C-x o でウィンドウ移動
+  ;; C-c C-n で vterm から別ウィンドウへ移動
   (evil-define-key 'insert vterm-mode-map
-    (kbd "C-c C-n") #'evil-normal-state
-    (kbd "C-x o") #'other-window))
+    (kbd "C-c C-n") (lambda () (interactive) (evil-normal-state) (other-window 1))))
 
 ;; Vterm-toggle (like toggleterm toggle behavior)
 (use-package vterm-toggle
