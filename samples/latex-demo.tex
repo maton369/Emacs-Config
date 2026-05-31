@@ -1,0 +1,109 @@
+% Created 2026-05-31 Sun 18:32
+% Intended LaTeX compiler: lualatex
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\author{maton}
+\date{2026-05-31}
+\title{Org + \LaTeX{} Demo}
+\hypersetup{
+ pdfauthor={Demo User},
+ pdftitle={Org + \LaTeX{} Demo},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 29.4 (Org mode 9.6.15)}, 
+ pdflang={English}}
+\makeatletter
+\newcommand{\citeprocitem}[2]{\hyper@linkstart{cite}{citeproc_bib_item_#1}#2\hyper@linkend}
+\makeatother
+
+\usepackage[notquote]{hanging}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+
+\section{Inline Math}
+\label{sec:orgf06e628}
+
+Einstein's famous equation: \(E = mc^2\)
+
+The quadratic formula: \(x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}\)
+
+Euler's identity: \(e^{i\pi} + 1 = 0\)
+
+\section{Display Math}
+\label{sec:org270e00a}
+
+\[ \int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2} \]
+
+\[ \sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6} \]
+
+\begin{equation}
+	\nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}
+\end{equation}
+
+\section{Matrix}
+\label{sec:orgbe4e020}
+
+\[
+	A = \begin{pmatrix}
+		a_{11} & a_{12} \\
+		a_{21} & a_{22}
+	\end{pmatrix}
+\]
+
+\section{Citations}
+\label{sec:org976ba7e}
+
+Einstein proposed special relativity (Einstein 1905).
+
+Shannon founded information theory (Shannon 1948).
+
+For algorithmic analysis, see (Knuth 1997).
+
+\section{Code Block}
+\label{sec:orge624672}
+
+\begin{verbatim}
+import numpy as np
+
+x = np.linspace(0, 2 * np.pi, 100)
+y = np.sin(x)
+print(f"max(sin(x)) = {y.max()}")
+\end{verbatim}
+
+\section{Table}
+\label{sec:orgd0003a8}
+
+\begin{center}
+	\begin{tabular}{lll}
+		Symbol   & Name   & Value           \\[0pt]
+		\hline
+		\(\pi\)  & Pi     & 3.14159\ldots{} \\[0pt]
+		\(e\)    & Euler  & 2.71828\ldots{} \\[0pt]
+		\(\phi\) & Golden & 1.61803\ldots{} \\[0pt]
+	\end{tabular}
+\end{center}
+
+\section{Verification Checklist}
+\label{sec:org5985c7c}
+
+\begin{itemize}
+	\item[{$\square$}] Inline math renders on cursor leave (org-fragtog)
+	\item[{$\square$}] \texttt{SPC m l} toggles all previews
+	\item[{$\square$}] \texttt{SPC m c} opens citar search
+	\item[{$\square$}] \texttt{SPC m e} opens export dispatcher
+	\item[{$\square$}] \texttt{SPC m e l p} exports PDF
+\end{itemize}
+\end{document}

@@ -1,0 +1,67 @@
+#+TITLE: Org + LaTeX Demo
+#+AUTHOR: Demo User
+#+DATE: 2026-05-31
+#+LATEX_COMPILER: lualatex
+#+BIBLIOGRAPHY: ~/org/references.bib
+#+CITE_EXPORT: csl
+
+* Inline Math
+
+Einstein's famous equation: $E = mc^2$
+
+The quadratic formula: $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$
+
+Euler's identity: $e^{i\pi} + 1 = 0$
+
+* Display Math
+
+\[ \int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2} \]
+
+\[ \sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6} \]
+
+\begin{equation}
+\nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}
+\end{equation}
+
+* Matrix
+
+\[
+A = \begin{pmatrix}
+a_{11} & a_{12} \\
+a_{21} & a_{22}
+\end{pmatrix}
+\]
+
+* Citations
+
+Einstein proposed special relativity [cite:@einstein1905].
+
+Shannon founded information theory [cite:@shannon1948].
+
+For algorithmic analysis, see [cite:@knuth1997].
+
+* Code Block
+
+#+begin_src python
+import numpy as np
+
+x = np.linspace(0, 2 * np.pi, 100)
+y = np.sin(x)
+print(f"max(sin(x)) = {y.max()}")
+#+end_src
+
+* Table
+
+| Symbol | Name      | Value          |
+|--------+-----------+----------------|
+| $\pi$  | Pi        | 3.14159...     |
+| $e$    | Euler     | 2.71828...     |
+| $\phi$ | Golden    | 1.61803...     |
+
+* Verification Checklist
+
+- [ ] Inline math renders on cursor leave (org-fragtog)
+- [ ] =SPC m l= toggles all previews
+- [ ] =SPC m c= opens citar search
+- [ ] =SPC m e= opens export dispatcher
+- [ ] =SPC m e l p= exports PDF
