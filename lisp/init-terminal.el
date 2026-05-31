@@ -7,9 +7,10 @@
   :config
   (setq vterm-max-scrollback 10000
         vterm-timer-delay 0.01)
-  ;; C-x o でターミナルから直接ウィンドウ移動
+  ;; C-c C-n で normal モードに抜ける（C-\ C-n の代替）
+  ;; C-x o でウィンドウ移動
   (evil-define-key 'insert vterm-mode-map
-    (kbd "C-\\ C-n") 'vterm-send-escape
+    (kbd "C-c C-n") #'evil-normal-state
     (kbd "C-x o") #'other-window))
 
 ;; Vterm-toggle (like toggleterm toggle behavior)
