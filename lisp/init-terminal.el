@@ -7,13 +7,10 @@
   :config
   (setq vterm-max-scrollback 10000
         vterm-timer-delay 0.01)
-  ;; C-h/j/k/l でターミナルから直接ウィンドウ移動（Neovim と同じ）
+  ;; C-x o でターミナルから直接ウィンドウ移動
   (evil-define-key 'insert vterm-mode-map
     (kbd "C-\\ C-n") 'vterm-send-escape
-    (kbd "C-h") #'evil-window-left
-    (kbd "C-j") #'evil-window-down
-    (kbd "C-k") #'evil-window-up
-    (kbd "C-l") #'evil-window-right))
+    (kbd "C-x o") #'other-window))
 
 ;; Vterm-toggle (like toggleterm toggle behavior)
 (use-package vterm-toggle
