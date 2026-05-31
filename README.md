@@ -1,87 +1,88 @@
-# Vanilla Emacs Config
+# Vanilla Emacs 設定
 
-Neovim from ported **Emacs 29+** configuration.
+Neovim から移植した **Emacs 29+** 設定。
 
-## Features
+## 主な機能
 
-- **Evil mode** — Vim keybindings
-- **Eglot** — LSP support for 10+ languages
-- **Corfu + Vertico** — fast completion & minibuffer UI
-- **Magit** — Git porcelain
-- **Org + LaTeX** — org-fragtog, citar, lualatex PDF export
-- **pdf-tools** — in-editor PDF viewer
-- **Catppuccin Mocha** — consistent theme with Neovim
+- **Evil mode** — Vim キーバインド
+- **Eglot** — 10 以上の言語の LSP サポート
+- **Corfu + Vertico** — 高速補完とミニバッファ UI
+- **Magit** — Git ポーセリン
+- **Org + LaTeX** — org-fragtog, citar, lualatex PDF エクスポート
+- **pdf-tools** — エディタ内 PDF ビューア
+- **Catppuccin Mocha** — Neovim と統一のテーマ
 
-## Quick Start
+## クイックスタート
 
 ```bash
 ./setup.sh
 emacs -nw
 ```
 
-## Remote SSH Connection (TRAMP)
+## SSH リモート接続 (TRAMP)
 
-### Method 1: From the command line
+### コマンドラインから
 
 ```bash
-# Open a remote directory
+# リモートディレクトリを開く
 emacs -nw /ssh:hostname:~/project/
 
-# Open a specific file
+# 特定のファイルを開く
 emacs -nw /ssh:hostname:~/project/main.py
 
-# With vanilla Emacs (if Doom Emacs is the default)
+# Vanilla Emacs を指定して起動（Doom Emacs がデフォルトの場合）
 emacs --init-directory ~/.emacs.d -nw /ssh:hostname:~/project/
 ```
 
-### Method 2: From inside Emacs
+### Emacs 内から
 
 ```
 C-x C-f /ssh:hostname:~/project/ RET
 ```
 
-This opens the remote directory in dired. You can then navigate and open files.
-To open a specific file directly:
+リモートディレクトリが dired で開く。ファイルを直接開く場合:
 
 ```
 C-x C-f /ssh:hostname:~/project/main.py RET
 ```
 
-> Host names from `~/.ssh/config` are available (e.g. `my-server` instead of `user@192.168.1.100`).
+> `~/.ssh/config` のホスト名が使用可能。
 
-## Keybindings
+## キーバインド
 
-| Key | Action |
-|-----|--------|
-| `SPC ff` | Find files |
-| `SPC fg` | Live grep (ripgrep) |
-| `SPC gg` | Magit status |
-| `SPC ca` | Code action |
-| `SPC tt` | Toggle terminal |
-| `gd` | Go to definition |
-| `gr` | Find references |
-| `K` | Hover documentation |
-| `gcc` | Toggle comment |
-| `s` | Avy jump |
+### 一般
+
+| キー | 操作 |
+|------|------|
+| `SPC ff` | ファイル検索 |
+| `SPC fg` | ライブ grep (ripgrep) |
+| `SPC gg` | Magit ステータス |
+| `SPC ca` | コードアクション |
+| `SPC tt` | ターミナル切り替え |
+| `gd` | 定義へジャンプ |
+| `gr` | 参照検索 |
+| `K` | ホバードキュメント |
+| `gcc` | コメント切り替え |
+| `s` | Avy ジャンプ |
 
 ### Org + LaTeX
 
-| Key | Action |
-|-----|--------|
-| `C-c C-x C-l` | Toggle LaTeX preview |
-| `C-c C-,` | Insert citation (citar) |
-| `C-c C-e` | Export dispatcher |
-| `C-x C-s` | Save (auto-compiles .tex to PDF) |
+| キー | 操作 |
+|------|------|
+| `C-c C-x C-l` | LaTeX プレビュー切り替え |
+| `C-c C-,` | 文献挿入 (citar) |
+| `C-c C-e` | エクスポート |
+| `C-x C-s` | 保存（.tex は自動コンパイル → PDF） |
 
-## Package Mapping
+## パッケージ対応表
 
 ```
-Neovim Plugin        ->  Emacs Equivalent
+Neovim プラグイン     ->  Emacs 対応パッケージ
 ---------------------------------------------
 lazy.nvim            ->  straight.el
 telescope.nvim       ->  vertico + consult
 nvim-cmp             ->  corfu + cape
-nvim-lspconfig       ->  eglot (built-in)
+nvim-lspconfig       ->  eglot (組み込み)
 neo-tree             ->  treemacs
 lazygit              ->  magit
 gitsigns             ->  diff-hl
@@ -91,32 +92,32 @@ toggleterm           ->  vterm
 flash.nvim           ->  avy
 ```
 
-## Directory Structure
+## ディレクトリ構成
 
 ```
 ~/.emacs.d/
-├── early-init.el       # GC optimization, UI suppression
-├── init.el             # Bootstrap straight.el, load modules
+├── early-init.el       # GC 最適化、UI 抑制
+├── init.el             # straight.el 初期化、モジュール読み込み
 └── lisp/
-    ├── init-core.el        # Basic editor settings
+    ├── init-core.el        # 基本エディタ設定
     ├── init-evil.el        # Evil + evil-collection + general.el
-    ├── init-ui.el          # Theme, modeline, treemacs, tabs
-    ├── init-completion.el  # Corfu, Vertico, snippets
-    ├── init-editing.el     # Surround, comment, avy, multi-cursor
-    ├── init-treesit.el     # Tree-sitter, rainbow delimiters
+    ├── init-ui.el          # テーマ、モードライン、treemacs、タブ
+    ├── init-completion.el  # Corfu, Vertico, スニペット
+    ├── init-editing.el     # Surround, コメント, avy, マルチカーソル
+    ├── init-treesit.el     # Tree-sitter, rainbow-delimiters
     ├── init-lsp.el         # Eglot + eldoc-box
     ├── init-formatting.el  # Apheleia, Flymake
     ├── init-git.el         # Magit, diff-hl, blamer
     ├── init-search.el      # wgrep, consult-eglot
-    ├── init-project.el     # project.el, sessions, folding
+    ├── init-project.el     # project.el, セッション, 折りたたみ
     ├── init-terminal.el    # vterm
     ├── init-languages.el   # Go, Rust, Web, YAML, Markdown, Org
     ├── init-debug.el       # Dape (DAP)
     ├── init-notebook.el    # Jupyter, code-cells
     ├── init-org.el         # Org + LaTeX, citar, pdf-tools
     ├── init-ai.el          # gptel
-    ├── init-keybindings.el # All SPC leader bindings
-    └── init-utils.el       # which-key, hl-todo, startup layout
+    ├── init-keybindings.el # SPC リーダーキーバインド
+    └── init-utils.el       # which-key, hl-todo, 起動レイアウト
 ```
 
-> **Note**: LSP servers are installed externally (npm/go/rustup), not via Mason.
+> **注意**: LSP サーバーは外部でインストール（npm/go/rustup）。Mason は使用しない。
