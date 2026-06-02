@@ -44,9 +44,7 @@
 ;; Which-function-mode (like dropbar.nvim breadcrumbs)
 (use-package which-func
   :straight (:type built-in)
-  :demand t
-  :config
-  (which-function-mode 1))
+  :hook (prog-mode . which-function-mode))
 
 ;; Startup layout: treemacs | editor, terminal at bottom
 (defun my/focus-editor-window ()
@@ -118,14 +116,22 @@ Works for both local and TRAMP remote directories."
               ;; Fallback: just show Magit
               (magit-status-setup-buffer (or (magit-toplevel) dir)))))))
 
-    ;; 5. Focus treemacs
-    (when-let ((tw (treemacs-get-local-window)))
-      (select-window tw))))
+    ;; 5. Focus treemacs (少し遅延させてフレーム描画後に確実にフォーカス)
+    (run-with-timer 0.1 nil
+      (lambda ()
+        (when-let ((tw (treemacs-get-local-window)))
+          (select-window tw))))))
 
-;; Run layout AFTER dashboard finishes (dashboard uses emacs-startup-hook too)
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (run-with-timer 0.3 nil #'my/setup-startup-layout)))
+;; Run layout on startup / new frame (daemon対応)
+(if (daemonp)
+    ;; デーモンモード: クライアント接続時にレイアウト構築
+    (add-hook 'server-after-make-frame-hook
+              (lambda ()
+                (run-with-timer 0.3 nil #'my/setup-startup-layout)))
+  ;; 通常モード: 起動時にレイアウト構築
+  (add-hook 'emacs-startup-hook
+            (lambda ()
+              (run-with-timer 0.3 nil #'my/setup-startup-layout))))
 
 ;; Context-aware keybinding hints in header-line
 (defvar my/mode-hints
@@ -212,9 +218,9 @@ Works for both local and TRAMP remote directories."
      "u" "Unstage"
      "q" "Quit")
     (vterm-mode
+     "M-o" "→Editor"
      "SPC tt" "Toggle"
-     "C-\\ C-n" "Normal"
-     "C-h/k" "Window"))
+     "C-\\ C-n" "Normal"))
   "Alist of (MAJOR-MODE KEY1 DESC1 KEY2 DESC2 ...) for header-line hints.")
 
 (defvar my/file-hints

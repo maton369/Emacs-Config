@@ -67,7 +67,10 @@
    '(treemacs-git-ignored-face   ((t (:foreground "#585b70")))))) ;; dim
 
 (use-package treemacs-evil
-  :after (treemacs evil))
+  :after (treemacs evil)
+  :config
+  ;; treemacs state から M-o でエディタウィンドウへ移動
+  (define-key evil-treemacs-state-map (kbd "M-o") #'my/focus-editor-window))
 
 ;; Auto-refresh treemacs git status after magit operations (stage/unstage/commit)
 (use-package treemacs-magit
@@ -109,5 +112,17 @@
   :demand t
   :config
   (global-yascroll-bar-mode 1))
+
+;; Kitty-graphics: inline images in terminal Emacs (Ghostty/Kitty/WezTerm)
+;; NOTE: Initialization sends terminal queries whose responses pollute Emacs's
+;; input buffer.  We defer loading and discard stale input after activation.
+(use-package kitty-graphics
+  :straight (:host github :repo "cashmeredev/kitty-graphics.el")
+  :if (not (display-graphic-p))
+  :defer 1
+  :config
+  (kitty-graphics-mode 1)
+  ;; Wait for terminal responses, then flush them from the input buffer
+  (run-with-timer 0.5 nil #'discard-input))
 
 (provide 'init-ui)

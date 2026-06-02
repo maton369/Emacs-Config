@@ -1,6 +1,9 @@
 ;; -*- lexical-binding: t; -*-
 ;; init-core.el -- Basic editor settings (mirrors options.lua)
 
+;; GUI 起動時に全画面化
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+
 ;; Line numbers
 (setq display-line-numbers-type 'relative)
 (add-hook 'prog-mode-hook #'display-line-numbers-mode)

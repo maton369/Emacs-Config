@@ -76,16 +76,16 @@ if [ "$PLATFORM" = "mac" ]; then
     install_pkg "$pkg"
   done
 
-  # Emacs (emacs-plus@29 with native-comp)
-  if ! command -v emacs &>/dev/null; then
-    echo "  → Emacs をインストール中..."
-    brew tap d12frosted/emacs-plus
-    brew install emacs-plus@29 --with-native-comp
+  # Emacs (GUI版 cask)
+  if brew list --cask emacs-app &>/dev/null; then
+    echo "  ✓ emacs-app (インストール済み)"
   else
-    local ver
-    ver=$(emacs --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
-    echo "  ✓ emacs $ver (インストール済み)"
+    echo "  → Emacs (GUI版) をインストール中..."
+    # 壊れた Emacs.app があれば削除
+    [ -f /Applications/Emacs.app ] && rm -f /Applications/Emacs.app
+    brew install --cask emacs-app
   fi
+  EMACS_BIN="/Applications/Emacs.app/Contents/MacOS/Emacs"
 else
   sudo apt-get update -qq
 
@@ -99,6 +99,7 @@ else
   else
     echo "  ✓ emacs (インストール済み)"
   fi
+  EMACS_BIN="emacs"
 
   apt_packages=(
     git
@@ -177,8 +178,8 @@ else
   fi
 fi
 
-# tlmgr で追加パッケージをインストール (dvipng, dvisvgm, latexmk)
-# dvipng / dvisvgm: Org-mode が数式を画像に変換するために必要
+# tlmgr で追加パッケージをインストール
+# dvipng / dvisvgm: フォールバック用（メインは pdftoppm）
 # latexmk: LaTeX ビルド自動化
 tlmgr_packages=(dvipng dvisvgm latexmk)
 for pkg in "${tlmgr_packages[@]}"; do
@@ -210,7 +211,7 @@ fi
 # LaTeX コマンドの確認
 echo ""
 echo "  LaTeX コマンド確認:"
-for cmd in latex pdflatex lualatex latexmk bibtex biber dvipdfmx dvipng dvisvgm; do
+for cmd in latex pdflatex lualatex latexmk bibtex biber dvipdfmx dvipng dvisvgm pdftoppm; do
   if command -v "$cmd" &>/dev/null; then
     echo "    ✓ $cmd"
   else
@@ -303,9 +304,11 @@ fi
 
 # ---------- [6/9] Emacs 設定ファイルのインストール ----------
 echo ""
-echo "[6/9] Emacs 設定ファイルをインストール..."
+echo "[6/9] Emacs 設定ディレクトリをリンク..."
 
-if [ -d "$EMACS_DIR" ]; then
+if [ "$(readlink "$EMACS_DIR" 2>/dev/null)" = "$SCRIPT_DIR" ]; then
+  echo "  ✓ $EMACS_DIR → $SCRIPT_DIR (リンク済み)"
+elif [ -e "$EMACS_DIR" ]; then
   if [ "${1:-}" = "--clean" ]; then
     echo "  → 既存の $EMACS_DIR を削除中... (--clean)"
     rm -rf "$EMACS_DIR"
@@ -314,13 +317,12 @@ if [ -d "$EMACS_DIR" ]; then
     echo "  → 既存の $EMACS_DIR をバックアップ: $backup"
     mv "$EMACS_DIR" "$backup"
   fi
+  ln -s "$SCRIPT_DIR" "$EMACS_DIR"
+  echo "  ✓ $EMACS_DIR → $SCRIPT_DIR"
+else
+  ln -s "$SCRIPT_DIR" "$EMACS_DIR"
+  echo "  ✓ $EMACS_DIR → $SCRIPT_DIR"
 fi
-
-mkdir -p "$EMACS_DIR/lisp"
-cp "$SCRIPT_DIR/early-init.el" "$EMACS_DIR/"
-cp "$SCRIPT_DIR/init.el" "$EMACS_DIR/"
-cp "$SCRIPT_DIR/lisp/"*.el "$EMACS_DIR/lisp/"
-echo "  ✓ 設定ファイルをコピーしました"
 
 # stale .elc 削除
 elc_count=$(find "$EMACS_DIR/lisp" -name "*.elc" 2>/dev/null | wc -l | tr -d ' ')
@@ -359,7 +361,7 @@ echo ""
 echo "[8/9] straight.el でパッケージをインストール..."
 echo "  リポジトリのクローンに数分かかる場合があります。"
 
-emacs --batch -l "$EMACS_DIR/init.el" 2>&1 \
+"$EMACS_BIN" --batch -l "$EMACS_DIR/init.el" 2>&1 \
   | grep -E "^(Cloning|Building|Failed|Error)" \
   | while IFS= read -r line; do
       case "$line" in
@@ -381,7 +383,7 @@ echo ""
 echo "[9/9] インストール確認..."
 
 # Emacs モジュール
-errors=$(emacs --batch -l "$EMACS_DIR/init.el" 2>&1 | grep -cE "^(Failed|Error)" || true)
+errors=$("$EMACS_BIN" --batch -l "$EMACS_DIR/init.el" 2>&1 | grep -cE "^(Failed|Error)" || true)
 if [ "$errors" -eq 0 ]; then
   echo "  ✓ 全モジュール正常にロード"
 else
@@ -414,7 +416,7 @@ done
 # LaTeX
 echo ""
 echo "  LaTeX 環境確認:"
-for cmd in lualatex latexmk bibtex dvipng dvisvgm; do
+for cmd in lualatex latexmk bibtex dvipng dvisvgm pdftoppm; do
   if command -v "$cmd" &>/dev/null; then
     echo "    ✓ $cmd"
   else
@@ -427,12 +429,18 @@ echo ""
 echo "=== セットアップ完了 ==="
 echo ""
 echo "確認コマンド:"
-echo "  emacs                → Emacs を起動"
-echo "  emacs --batch -l ~/.emacs.d/init.el   → モジュールの健全性チェック"
+echo "  emacsclient -c -a ''  → Emacs を起動 (デーモン自動起動)"
+echo ""
+echo "推奨エイリアス (.zshrc に追加):"
+if [ "$PLATFORM" = "mac" ]; then
+echo '  EMACS_APP="/Applications/Emacs.app/Contents/MacOS"'
+echo '  export PATH="$EMACS_APP/bin:$PATH"'
+fi
+echo "  alias emacs=\"emacsclient -c -a ''\""
+echo "  alias kill-emacs=\"emacsclient -e '(kill-emacs)'\""
 echo ""
 echo "初回起動後 (任意):"
 echo "  M-x nerd-icons-install-fonts    → Nerd フォントをインストール"
-echo "  M-x verify-packages             → パッケージを検証"
 echo ""
 echo "注意:"
 echo "  - ~/.local/bin が PATH に含まれていることを確認してください"

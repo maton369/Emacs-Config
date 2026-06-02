@@ -305,4 +305,8 @@
     "r"  #'my/git-panel-refresh
     "q"  #'my/git-panel-quit))
 
+;; Forge: GitHub Issues/PRs inside Magit
+(use-package forge
+  :after magit)
+
 (provide 'init-git)

@@ -21,6 +21,12 @@
 (straight-use-package 'use-package)
 (require 'use-package)
 
+;; Prevent native-comp from trying to compile problematic packages (zmq, jupyter)
+;; that cause the daemon to hang at 100% CPU.
+(with-eval-after-load 'comp
+  (setq native-comp-jit-compilation-deny-list
+        '("zmq" "jupyter" "emacs-zmq")))
+
 ;; Add lisp/ to load-path
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 
@@ -52,3 +58,9 @@
         init-devcontainer
         init-keybindings
         init-utils))
+
+;; デーモンモードで server-start を保証
+(when (daemonp)
+  (require 'server)
+  (unless (server-running-p)
+    (server-start)))

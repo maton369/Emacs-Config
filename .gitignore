@@ -22,3 +22,22 @@ samples/*.pdf
 
 # Byte-compiled Elisp
 *.elc
+
+# Native-comp cache
+eln-cache/
+
+# straight.el package manager (rebuilt by setup.sh)
+straight/
+
+# Tree-sitter grammars (downloaded on first use)
+tree-sitter/
+
+# Emacs runtime files
+.emacs.desktop
+.emacs.desktop.lock
+.cache/
+history
+places
+recentf
+tramp
+forge-database.sqlite

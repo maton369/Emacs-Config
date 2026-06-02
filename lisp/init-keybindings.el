@@ -77,9 +77,15 @@
   "sr" '(consult-ripgrep :wk "Search & replace")
   "sw" '(consult-line :wk "Search word")
 
-  ;; === Markdown ===
-  "m"  '(:ignore t :wk "Markdown/Misc")
-  "mp" '(my/markdown-preview-eww :wk "Markdown preview (eww)")))
+  ;; === Markdown / Notebook (SPC m) ===
+  "m"  '(:ignore t :wk "Markdown/Notebook")
+  "mp" '(my/markdown-preview-eww :wk "Markdown preview (eww)")
+  "mi" '(my/jupyter-start-kernel :wk "Init kernel")
+  "mk" '(jupyter-connect-repl :wk "Connect kernel")
+  "mx" '(my/jupyter-eval-cell :wk "Run cell")
+  "mX" '(my/jupyter-eval-cell-and-step :wk "Run+Move")
+  "mc" '(my/jupyter-eval-buffer :wk "Run all cells")
+  "md" '(my/jupyter-clear-all-overlays :wk "Clear outputs")))
 
 ;; === Non-leader keybindings ===
 

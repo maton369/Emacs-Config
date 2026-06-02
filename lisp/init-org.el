@@ -8,9 +8,31 @@
 ;; --- Org LaTeX preview ---
 (use-package org
   :defer t
+  :custom
+  (org-startup-with-latex-preview t)
+  (org-preview-latex-default-process 'dvipng)
   :config
-  (setq org-startup-with-latex-preview t)
-  (plist-put org-format-latex-options :scale 1.5))
+  (plist-put org-format-latex-options :scale 1.5)
+  ;; プレビュー用ヘッダーから fontspec を除外（dvipng は DVI ベースのため lualatex 不可）
+  ;; エクスポート時は lualatex + fontspec が使われる
+  (setq org-format-latex-header
+        "\\documentclass{article}
+\\usepackage[usenames]{color}
+\\usepackage{amsmath}
+\\usepackage{amssymb}
+\\pagestyle{empty}
+\\setlength{\\textwidth}{\\paperwidth}
+\\addtolength{\\textwidth}{-3cm}
+\\setlength{\\oddsidemargin}{1.5cm}
+\\addtolength{\\oddsidemargin}{-2.54cm}
+\\setlength{\\evensidemargin}{\\oddsidemargin}
+\\setlength{\\textheight}{\\paperheight}
+\\addtolength{\\textheight}{-\\headheight}
+\\addtolength{\\textheight}{-\\headsep}
+\\addtolength{\\textheight}{-\\footskip}
+\\addtolength{\\textheight}{-3cm}
+\\setlength{\\topmargin}{1.5cm}
+\\addtolength{\\topmargin}{-2.54cm}"))
 
 ;; --- citar: bibliography management ---
 (use-package citar

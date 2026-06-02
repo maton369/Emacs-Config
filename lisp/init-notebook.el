@@ -29,16 +29,33 @@
 
   (advice-add 'jupyter-insert-image :after
               (lambda (data type &optional metadata)
-                (when (and (display-graphic-p) my/jupyter-current-cell-end)
+                (when my/jupyter-current-cell-end
                   (puthash my/jupyter-current-cell-end
                            (cons (cons data type)
                                  (gethash my/jupyter-current-cell-end
                                           my/jupyter-cell-images))
                            my/jupyter-cell-images)))))
 
+;; --- CUI image support via kitty-graphics ---
+;; jupyter filters out image MIME types in terminal Emacs (jupyter-nongraphic-mime-types).
+;; When kitty-graphics is active, temporarily pretend display is graphical so that
+;; image/png etc. are processed and jupyter-insert-image fires (our :after advice
+;; captures the raw data).
+(with-eval-after-load 'jupyter-mime
+  (advice-add 'jupyter-insert :around
+              (lambda (orig-fn &rest args)
+                (if (bound-and-true-p kitty-graphics-mode)
+                    (cl-letf (((symbol-function 'display-graphic-p)
+                               (lambda (&rest _) t)))
+                      (apply orig-fn args))
+                  (apply orig-fn args)))))
+
 ;; --- Inline display functions ---
 (defvar-local my/jupyter-cell-overlays nil
   "Alist of (CELL-END . OVERLAY) for inline outputs.")
+
+(defvar my/jupyter-temp-image-files nil
+  "List of temp image files created for kitty-graphics display.")
 
 (defun my/jupyter--make-image-string (data type)
   "Create image propertized string from DATA of TYPE, sized to ~60% of window width."
@@ -52,17 +69,30 @@
         (cl-remove-if
          (lambda (pair)
            (when (<= (abs (- (car pair) pos)) 2)
-             (delete-overlay (cdr pair)) t))
+             (let ((ov (cdr pair)))
+               (if (and (bound-and-true-p kitty-graphics-mode)
+                        (fboundp 'kitty-gfx--remove-overlay))
+                   (kitty-gfx--remove-overlay ov)
+                 (delete-overlay ov)))
+             t))
          my/jupyter-cell-overlays)))
 
 (defun my/jupyter-clear-all-overlays ()
   "Clear all inline cell output overlays."
   (interactive)
   (dolist (pair my/jupyter-cell-overlays)
-    (delete-overlay (cdr pair)))
+    (let ((ov (cdr pair)))
+      (if (and (bound-and-true-p kitty-graphics-mode)
+               (fboundp 'kitty-gfx--remove-overlay))
+          (kitty-gfx--remove-overlay ov)
+        (delete-overlay ov))))
   (setq my/jupyter-cell-overlays nil)
   (clrhash my/jupyter-cell-images)
   (setq my/jupyter-current-cell-end nil)
+  ;; Clean up temp image files
+  (dolist (f my/jupyter-temp-image-files)
+    (when (file-exists-p f) (delete-file f)))
+  (setq my/jupyter-temp-image-files nil)
   (when (fboundp 'jupyter-eval-remove-overlays)
     (jupyter-eval-remove-overlays)))
 
@@ -74,18 +104,34 @@
         (my/jupyter-clear-cell-overlay cell-end)
         (save-excursion
           (goto-char cell-end)
-          (let* ((ov-pos (line-end-position))
-                 (ov (make-overlay ov-pos ov-pos)))
-            (overlay-put ov 'after-string
-                         (concat "\n"
-                                 (mapconcat
-                                  (lambda (pair)
-                                    (my/jupyter--make-image-string
-                                     (car pair) (cdr pair)))
-                                  (nreverse (copy-sequence raw-images))
-                                  "\n")
-                                 "\n"))
-            (push (cons cell-end ov) my/jupyter-cell-overlays))))
+          (if (bound-and-true-p kitty-graphics-mode)
+              ;; CUI: save to temp files, use kitty-graphics protocol
+              (dolist (pair (nreverse (copy-sequence raw-images)))
+                (let* ((data (car pair))
+                       (type (cdr pair))
+                       (ext (pcase type ('png ".png") ('jpeg ".jpg") (_ ".png")))
+                       (tmp (make-temp-file "jupyter-img-" nil ext)))
+                  (with-temp-buffer
+                    (set-buffer-multibyte nil)
+                    (insert data)
+                    (write-region (point-min) (point-max) tmp nil 'silent))
+                  (push tmp my/jupyter-temp-image-files)
+                  (let ((pos (line-end-position)))
+                    (when-let ((ov (kitty-gfx-display-image tmp pos pos)))
+                      (push (cons cell-end ov) my/jupyter-cell-overlays)))))
+            ;; GUI: use create-image overlays
+            (let* ((ov-pos (line-end-position))
+                   (ov (make-overlay ov-pos ov-pos)))
+              (overlay-put ov 'after-string
+                           (concat "\n"
+                                   (mapconcat
+                                    (lambda (pair)
+                                      (my/jupyter--make-image-string
+                                       (car pair) (cdr pair)))
+                                    (nreverse (copy-sequence raw-images))
+                                    "\n")
+                                   "\n"))
+              (push (cons cell-end ov) my/jupyter-cell-overlays)))))
       ;; Also hide any display window that snuck through
       (dolist (buf (buffer-list))
         (when (string-match-p "\\*jupyter-display" (buffer-name buf))
@@ -107,11 +153,13 @@
               (my/jupyter-place-images cell-end buf))))))))
 
 (defun my/jupyter-refresh-overlays (&optional _frame)
-  "Debounced re-render of jupyter cell overlays on window resize."
-  (when my/jupyter-refresh-timer
-    (cancel-timer my/jupyter-refresh-timer))
-  (setq my/jupyter-refresh-timer
-        (run-with-idle-timer 0.3 nil #'my/jupyter--do-refresh-overlays)))
+  "Debounced re-render of jupyter cell overlays on window resize.
+kitty-graphics handles its own refresh, so skip in CUI."
+  (unless (bound-and-true-p kitty-graphics-mode)
+    (when my/jupyter-refresh-timer
+      (cancel-timer my/jupyter-refresh-timer))
+    (setq my/jupyter-refresh-timer
+          (run-with-idle-timer 0.3 nil #'my/jupyter--do-refresh-overlays))))
 
 (add-hook 'window-size-change-functions #'my/jupyter-refresh-overlays)
 
@@ -133,6 +181,8 @@
 (defun my/jupyter-eval-cell ()
   "Evaluate current cell and display results inline."
   (interactive)
+  (unless (bound-and-true-p jupyter-current-client)
+    (user-error "No Jupyter kernel connected. Run SPC m i first"))
   (when (bound-and-true-p jupyter-current-client)
     (pcase-let ((`(,start ,end) (code-cells--bounds 1 nil t)))
       (let ((cell-end end)
@@ -153,25 +203,44 @@
   (my/jupyter-eval-cell)
   (code-cells-forward-cell))
 
+(defun my/jupyter-diag ()
+  "Diagnose jupyter + code-cells state for the current buffer."
+  (interactive)
+  (message (concat
+            (format "display-graphic: %s | " (display-graphic-p))
+            (format "kitty-gfx: %s | " (bound-and-true-p kitty-graphics-mode))
+            (format "major-mode: %s | " major-mode)
+            (format "code-cells: %s | " (bound-and-true-p code-cells-mode))
+            (format "client: %s | " (if (bound-and-true-p jupyter-current-client) "connected" "nil"))
+            (format "images: %s | " (hash-table-count my/jupyter-cell-images))
+            (format "overlays: %s | " (length my/jupyter-cell-overlays))
+            (format "buffer: %s"  (buffer-name)))))
+
 (defun my/jupyter-eval-buffer ()
   "Evaluate all cells in buffer sequentially."
   (interactive)
-  (when (bound-and-true-p jupyter-current-client)
-    (let ((cells '()))
-      (save-excursion
-        (goto-char (point-min))
-        (code-cells-forward-cell)
-        (while (not (eobp))
-          (ignore-errors
-            (pcase-let ((`(,start ,end) (code-cells--bounds 1 nil t)))
-              (when (and start end (< start end))
-                (push (list start end) cells))))
-          (let ((pos (point)))
-            (code-cells-forward-cell)
-            (when (= (point) pos)
-              (goto-char (point-max))))))
-      (when cells
-        (my/jupyter--eval-next-cell (nreverse cells) (current-buffer))))))
+  (unless (bound-and-true-p jupyter-current-client)
+    (user-error "No Jupyter kernel connected. Run SPC m i first"))
+  (unless (bound-and-true-p code-cells-mode)
+    (user-error "code-cells-mode is not active in this buffer"))
+  (let ((cells '()))
+    (save-excursion
+      (goto-char (point-min))
+      ;; Collect all cells: try bounds at each cell boundary
+      (while (not (eobp))
+        (ignore-errors
+          (pcase-let ((`(,start ,end) (code-cells--bounds 1 nil t)))
+            (when (and start end (< start end))
+              (push (list start end) cells))))
+        (let ((pos (point)))
+          (code-cells-forward-cell)
+          (when (= (point) pos)
+            (goto-char (point-max))))))
+    (if cells
+        (progn
+          (message "Evaluating %d cells..." (length cells))
+          (my/jupyter--eval-next-cell (nreverse cells) (current-buffer)))
+      (user-error "No cells found (collected 0). Check # %%%% markers"))))
 
 (defun my/jupyter--eval-next-cell (cells buf)
   "Evaluate first cell in CELLS, place images, then proceed to next."
@@ -213,14 +282,6 @@
     "]c" 'code-cells-forward-cell
     "[c" 'code-cells-backward-cell))
 
-;; Leader bindings
-(with-eval-after-load 'general
-  (my/leader
-    "mi" '(my/jupyter-start-kernel :wk "Init kernel")
-    "mk" '(jupyter-connect-repl :wk "Connect kernel")
-    "mx" '(my/jupyter-eval-cell :wk "Run cell")
-    "mX" '(my/jupyter-eval-cell-and-step :wk "Run+Move")
-    "mc" '(my/jupyter-eval-buffer :wk "Run all cells")
-    "md" '(my/jupyter-clear-all-overlays :wk "Clear outputs")))
+;; Leader bindings: defined in init-keybindings.el under "m" prefix
 
 (provide 'init-notebook)

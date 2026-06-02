@@ -7,7 +7,12 @@
   :config
   (setq vterm-max-scrollback 10000
         vterm-timer-delay 0.01)
-  ;; C-x o で vterm からエディタウィンドウへ移動
+  ;; M-o で vterm からエディタウィンドウへ移動（ESC不要）
+  (evil-define-key* 'insert vterm-mode-map
+    (kbd "M-o") (lambda () (interactive)
+                  (evil-normal-state)
+                  (my/focus-editor-window)))
+  ;; C-x o も残す（Emacs標準キー）
   (define-key vterm-mode-map (kbd "C-x o")
     (lambda () (interactive)
       (evil-normal-state)
