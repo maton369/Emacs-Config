@@ -1,8 +1,8 @@
-# Vanilla Emacs 設定
+# Emacs 設定
 
-Neovim から移植した **Emacs 29+** 設定。
+**Emacs 29+** の設定。Evil mode + straight.el。
+
 <img width="1512" height="949" alt="image" src="https://github.com/user-attachments/assets/b2177fb4-f344-45f6-8ef3-7f7f33ed536a" />
-
 
 ## 主な機能
 
@@ -12,7 +12,8 @@ Neovim から移植した **Emacs 29+** 設定。
 - **Magit** — Git ポーセリン
 - **Org + LaTeX** — org-fragtog, citar, lualatex PDF エクスポート
 - **pdf-tools** — エディタ内 PDF ビューア
-- **Catppuccin Mocha** — Neovim と統一のテーマ
+- **Jupyter** — セル評価と kitty-graphics によるインライン画像表示
+- **Catppuccin Mocha** テーマ
 
 ## クイックスタート
 
@@ -20,35 +21,6 @@ Neovim から移植した **Emacs 29+** 設定。
 ./setup.sh
 emacs -nw
 ```
-
-## SSH リモート接続 (TRAMP)
-
-### コマンドラインから
-
-```bash
-# リモートディレクトリを開く
-emacs -nw /ssh:hostname:~/project/
-
-# 特定のファイルを開く
-emacs -nw /ssh:hostname:~/project/main.py
-
-# Vanilla Emacs を指定して起動（Doom Emacs がデフォルトの場合）
-emacs --init-directory ~/.emacs.d -nw /ssh:hostname:~/project/
-```
-
-### Emacs 内から
-
-```
-C-x C-f /ssh:hostname:~/project/ RET
-```
-
-リモートディレクトリが dired で開く。ファイルを直接開く場合:
-
-```
-C-x C-f /ssh:hostname:~/project/main.py RET
-```
-
-> `~/.ssh/config` のホスト名が使用可能。
 
 ## キーバインド
 
@@ -67,6 +39,18 @@ C-x C-f /ssh:hostname:~/project/main.py RET
 | `gcc` | コメント切り替え |
 | `s` | Avy ジャンプ |
 
+### Jupyter (python-ts-mode)
+
+| キー | 操作 |
+|------|------|
+| `SPC mi` | カーネル起動 |
+| `SPC mx` | セル実行 |
+| `SPC mX` | セル実行して次へ |
+| `SPC mc` | 全セル実行 |
+| `SPC md` | 出力クリア |
+| `SPC mD` | 診断情報 |
+| `]c` / `[c` | 次 / 前のセル |
+
 ### Org + LaTeX
 
 | キー | 操作 |
@@ -75,24 +59,6 @@ C-x C-f /ssh:hostname:~/project/main.py RET
 | `C-c C-,` | 文献挿入 (citar) |
 | `C-c C-e` | エクスポート |
 | `C-x C-s` | 保存（.tex は自動コンパイル → PDF） |
-
-## パッケージ対応表
-
-```
-Neovim プラグイン     ->  Emacs 対応パッケージ
----------------------------------------------
-lazy.nvim            ->  straight.el
-telescope.nvim       ->  vertico + consult
-nvim-cmp             ->  corfu + cape
-nvim-lspconfig       ->  eglot (組み込み)
-neo-tree             ->  treemacs
-lazygit              ->  magit
-gitsigns             ->  diff-hl
-conform.nvim         ->  apheleia
-nvim-dap             ->  dape
-toggleterm           ->  vterm
-flash.nvim           ->  avy
-```
 
 ## ディレクトリ構成
 
@@ -115,7 +81,7 @@ flash.nvim           ->  avy
     ├── init-terminal.el    # vterm
     ├── init-languages.el   # Go, Rust, Web, YAML, Markdown, Org
     ├── init-debug.el       # Dape (DAP)
-    ├── init-notebook.el    # Jupyter, code-cells
+    ├── init-notebook.el    # Jupyter, code-cells, kitty-graphics
     ├── init-org.el         # Org + LaTeX, citar, pdf-tools
     ├── init-ai.el          # gptel
     ├── init-keybindings.el # SPC リーダーキーバインド

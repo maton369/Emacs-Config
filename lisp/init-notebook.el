@@ -110,8 +110,6 @@
   "Debounce timer for scroll refresh.")
 (defvar my/jupyter--refresh-guard nil
   "Non-nil while kitty-gfx--refresh is running (prevents re-entrancy).")
-(defvar my/jupyter--redisplay-timer nil
-  "Debounce timer for post-command redisplay.")
 (defvar my/jupyter--avoiding-overlay nil
   "Non-nil while moving cursor out of image overlay.")
 
@@ -121,19 +119,10 @@
               (lambda (orig-fn)
                 (if my/jupyter--override-kitty-inhibit nil (funcall orig-fn))))
 
-  ;; Debounce post-command redisplay to prevent flicker on cursor movement
+  ;; Block kitty-gfx post-command redisplay entirely when we manage lifecycle
   (advice-add 'kitty-gfx--on-redisplay :around
               (lambda (orig-fn)
-                (if my/jupyter--override-kitty-inhibit
-                    (progn
-                      (when my/jupyter--redisplay-timer
-                        (cancel-timer my/jupyter--redisplay-timer))
-                      (setq my/jupyter--redisplay-timer
-                            (run-with-idle-timer
-                             0.2 nil
-                             (lambda ()
-                               (setq my/jupyter--redisplay-timer nil)
-                               (funcall orig-fn)))))
+                (unless my/jupyter--override-kitty-inhibit
                   (funcall orig-fn))))
 
   ;; Block refresh during scroll debounce AND prevent re-entrancy
@@ -146,50 +135,65 @@
 
   (defun my/jupyter--on-scroll (win _start)
     "Delete kitty image placements on scroll, force re-render of visible ones."
-    (when (and my/jupyter--override-kitty-inhibit
-               (not my/jupyter--scroll-guard))
-      (let ((buf (window-buffer win)))
-        (when (buffer-local-value 'kitty-gfx--overlays buf)
-          (setq my/jupyter--scroll-guard t)
-          ;; Nuclear: tell terminal directly to delete ALL image placements
-          (send-string-to-terminal "\e_Ga=d,d=a\e\\")
-          ;; Reset kitty-gfx tracking so it re-places from scratch
-          (with-current-buffer buf
-            (dolist (ov kitty-gfx--overlays)
-              (overlay-put ov 'kitty-gfx-last-row nil)
-              (overlay-put ov 'kitty-gfx-last-col nil)))
-          ;; Debounced re-place
-          (when my/jupyter--scroll-timer
-            (cancel-timer my/jupyter--scroll-timer))
-          (setq my/jupyter--scroll-timer
-                (run-with-idle-timer
-                 0.15 nil
-                 (lambda ()
-                   (setq my/jupyter--scroll-timer nil
-                         my/jupyter--scroll-guard nil
-                         kitty-gfx--force-redisplay t)
-                   (message nil)
-                   (kitty-gfx--refresh))))))))
+    (condition-case nil
+        (when (and my/jupyter--override-kitty-inhibit
+                   (not my/jupyter--scroll-guard))
+          (let ((buf (window-buffer win)))
+            (when (buffer-local-value 'kitty-gfx--overlays buf)
+              (setq my/jupyter--scroll-guard t)
+              ;; Nuclear: tell terminal directly to delete ALL image placements
+              (send-string-to-terminal "\e_Ga=d,d=a\e\\")
+              ;; Reset kitty-gfx tracking so it re-places from scratch
+              (with-current-buffer buf
+                (dolist (ov kitty-gfx--overlays)
+                  (overlay-put ov 'kitty-gfx-last-row nil)
+                  (overlay-put ov 'kitty-gfx-last-col nil)))
+              ;; Debounced re-place
+              (when my/jupyter--scroll-timer
+                (cancel-timer my/jupyter--scroll-timer))
+              (setq my/jupyter--scroll-timer
+                    (run-with-idle-timer
+                     0.15 nil
+                     (lambda ()
+                       (setq my/jupyter--scroll-timer nil
+                             my/jupyter--scroll-guard nil
+                             kitty-gfx--force-redisplay t)
+                       (message nil)
+                       (kitty-gfx--refresh)))))))
+      (error (setq my/jupyter--scroll-guard nil))))
   (add-hook 'window-scroll-functions #'my/jupyter--on-scroll)
 
   ;; Kick cursor out of image overlays to prevent trapping/hang
   (defun my/jupyter--avoid-image-overlay ()
     "Move cursor away from kitty-gfx image overlays."
-    (when (and my/jupyter--override-kitty-inhibit
-               (not my/jupyter--avoiding-overlay))
-      (let ((my/jupyter--avoiding-overlay t))
-        (dolist (ov (overlays-at (point)))
-          (when (overlay-get ov 'kitty-gfx-image-id)
-            (if (memq last-command '(evil-next-line evil-next-visual-line
-                                     next-line evil-forward-char))
-                (goto-char (overlay-end ov))
-              (goto-char (1- (overlay-start ov)))))))))
+    (condition-case nil
+        (when (and my/jupyter--override-kitty-inhibit
+                   (not my/jupyter--avoiding-overlay))
+          (setq my/jupyter--avoiding-overlay t)
+          (unwind-protect
+              (catch 'done
+                (dolist (ov (overlays-at (point)))
+                  (when (overlay-get ov 'kitty-gfx-image-id)
+                    (let ((inhibit-redisplay t))
+                      (goto-char
+                       (if (memq last-command '(evil-next-line evil-next-visual-line
+                                                next-line evil-forward-char))
+                           (overlay-end ov)
+                         (max (point-min) (1- (overlay-start ov))))))
+                    (throw 'done nil))))
+            (setq my/jupyter--avoiding-overlay nil)))
+      (error (setq my/jupyter--avoiding-overlay nil))))
   (add-hook 'post-command-hook #'my/jupyter--avoid-image-overlay)
 
   ;; Clean shutdown: strip all advice/hooks/timers so kill-emacs doesn't hang
   (add-hook 'kill-emacs-hook
             (lambda ()
-              ;; Remove hooks first
+              ;; Remove ALL advice from kitty-gfx functions (our lambdas block cleanup)
+              (dolist (sym '(kitty-gfx--refresh-inhibited-p
+                             kitty-gfx--on-redisplay
+                             kitty-gfx--refresh))
+                (advice-mapc (lambda (fn _props) (advice-remove sym fn)) sym))
+              ;; Remove hooks
               (remove-hook 'window-scroll-functions #'my/jupyter--on-scroll)
               (remove-hook 'post-command-hook #'my/jupyter--avoid-image-overlay)
               (remove-hook 'post-command-hook #'kitty-gfx--on-redisplay)
@@ -198,13 +202,11 @@
               (when my/jupyter--scroll-timer
                 (cancel-timer my/jupyter--scroll-timer)
                 (setq my/jupyter--scroll-timer nil))
-              (when my/jupyter--redisplay-timer
-                (cancel-timer my/jupyter--redisplay-timer)
-                (setq my/jupyter--redisplay-timer nil))
               ;; Reset flags
               (setq my/jupyter--override-kitty-inhibit nil
                     my/jupyter--scroll-guard nil
-                    my/jupyter--refresh-guard nil))))
+                    my/jupyter--refresh-guard nil
+                    my/jupyter--avoiding-overlay nil))))
 
 (defun my/jupyter-place-images (cell-end source-buf)
   "Place captured images for CELL-END as overlay in SOURCE-BUF.
