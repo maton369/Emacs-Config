@@ -1,6 +1,12 @@
 ;; -*- lexical-binding: t; -*-
 ;; init-core.el -- Basic editor settings (mirrors options.lua)
 
+;; Sync shell PATH → exec-path (macOS daemon doesn't inherit shell env)
+(use-package exec-path-from-shell
+  :if (or (daemonp) (memq window-system '(mac ns x)))
+  :config
+  (exec-path-from-shell-initialize))
+
 ;; GUI 起動時に全画面化
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 

@@ -85,7 +85,8 @@
   "mx" '(my/jupyter-eval-cell :wk "Run cell")
   "mX" '(my/jupyter-eval-cell-and-step :wk "Run+Move")
   "mc" '(my/jupyter-eval-buffer :wk "Run all cells")
-  "md" '(my/jupyter-clear-all-overlays :wk "Clear outputs")))
+  "md" '(my/jupyter-clear-all-overlays :wk "Clear outputs")
+  "mD" '(my/jupyter-diag :wk "Diagnostics")))
 
 ;; === Non-leader keybindings ===
 

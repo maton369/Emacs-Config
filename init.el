@@ -23,8 +23,11 @@
 
 ;; Prevent native-comp from trying to compile problematic packages (zmq, jupyter)
 ;; that cause the daemon to hang at 100% CPU.
-(with-eval-after-load 'comp
+(when (boundp 'native-comp-jit-compilation-deny-list)
   (setq native-comp-jit-compilation-deny-list
+        '("zmq" "jupyter" "emacs-zmq")))
+(when (boundp 'native-comp-deferred-compilation-deny-list)
+  (setq native-comp-deferred-compilation-deny-list
         '("zmq" "jupyter" "emacs-zmq")))
 
 ;; Add lisp/ to load-path
