@@ -1,7 +1,7 @@
 # Vanilla Emacs 設定
 
 Neovim から移植した **Emacs 29+** 設定。
-<img width="1512" height="949" alt="image" src="https://github.com/user-attachments/assets/e4bf1176-5689-4585-bbac-17e006548fc7" />
+<img width="1512" height="949" alt="image" src="https://github.com/user-attachments/assets/b2177fb4-f344-45f6-8ef3-7f7f33ed536a" />
 
 
 ## 主な機能
