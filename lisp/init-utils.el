@@ -61,15 +61,19 @@
       (select-window editor-win))))
 
 (defun my/startup-default-directory ()
-  "Get the default-directory from the first real buffer (e.g. dired from CLI arg)."
-  (let ((dir nil))
-    (dolist (buf (buffer-list))
-      (with-current-buffer buf
-        (when (and (not dir)
-                   (not (string-prefix-p " " (buffer-name)))
-                   (not (string-prefix-p "*" (buffer-name))))
-          (setq dir default-directory))))
-    (or dir default-directory)))
+  "Get the working directory for startup layout.
+In daemon mode, use the current frame's default-directory (set by emacsclient).
+Otherwise, use the first real buffer's directory or fallback to default-directory."
+  (if (daemonp)
+      default-directory
+    (let ((dir nil))
+      (dolist (buf (buffer-list))
+        (with-current-buffer buf
+          (when (and (not dir)
+                     (not (string-prefix-p " " (buffer-name)))
+                     (not (string-prefix-p "*" (buffer-name))))
+            (setq dir default-directory))))
+      (or dir default-directory))))
 
 (defun my/setup-startup-layout ()
   "Build the startup layout: treemacs | (editor + magit) / terminal.
