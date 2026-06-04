@@ -306,6 +306,20 @@ fi
 echo ""
 echo "[6/9] Emacs 設定ディレクトリをリンク..."
 
+# ~/.config/emacs が存在する場合は警告（Emacs 29+ では ~/.emacs.d より優先される）
+if [ -d "${HOME}/.config/emacs" ]; then
+  echo "  ⚠ ~/.config/emacs が存在します（Doom Emacs 等）。"
+  echo "    Emacs はこちらを ~/.emacs.d より優先して読み込みます。"
+  echo "    退避するには: mv ~/.config/emacs ~/.config/emacs.bak"
+  echo ""
+  read -p "  続行しますか？ (y/n) " -n 1 -r
+  echo ""
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "  中断しました。"
+    exit 1
+  fi
+fi
+
 if [ "$(readlink "$EMACS_DIR" 2>/dev/null)" = "$SCRIPT_DIR" ]; then
   echo "  ✓ $EMACS_DIR → $SCRIPT_DIR (リンク済み)"
 elif [ -e "$EMACS_DIR" ]; then
@@ -432,6 +446,46 @@ for cmd in lualatex latexmk bibtex dvipng dvisvgm pdftoppm; do
   fi
 done
 
+# ---------- [macOS] Emacs デーモンの LaunchAgent 設定 ----------
+if [ "$PLATFORM" = "mac" ]; then
+  PLIST_PATH="$HOME/Library/LaunchAgents/gnu.emacs.daemon.plist"
+  if [ -f "$PLIST_PATH" ]; then
+    echo ""
+    echo "  ✓ LaunchAgent (既存: $PLIST_PATH)"
+  else
+    echo ""
+    echo "  → Emacs デーモン用 LaunchAgent を作成中..."
+    mkdir -p "$HOME/Library/LaunchAgents"
+    cat > "$PLIST_PATH" << 'PLISTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>gnu.emacs.daemon</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Applications/Emacs.app/Contents/MacOS/Emacs</string>
+    <string>--daemon</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/emacs-daemon.stdout.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/emacs-daemon.stderr.log</string>
+</dict>
+</plist>
+PLISTEOF
+    launchctl load "$PLIST_PATH" 2>/dev/null || true
+    echo "  ✓ LaunchAgent を作成・登録しました"
+    echo "    ログイン時に Emacs デーモンが自動起動します"
+  fi
+fi
+
 # ---------- 完了 ----------
 echo ""
 echo "=== セットアップ完了 ==="
@@ -444,8 +498,10 @@ if [ "$PLATFORM" = "mac" ]; then
 echo '  EMACS_APP="/Applications/Emacs.app/Contents/MacOS"'
 echo '  export PATH="$EMACS_APP/bin:$PATH"'
 fi
-echo "  alias emacs=\"emacsclient -c -a ''\""
-echo "  alias kill-emacs=\"emacsclient -e '(kill-emacs)'\""
+echo '  alias e="emacsclient -t -a \"\""'
+echo '  alias eg="emacsclient -c -a \"\""'
+echo '  alias estart="emacs --daemon"'
+echo '  alias estop="emacsclient -e \"(kill-emacs)\""'
 echo ""
 echo "初回起動後 (任意):"
 echo "  M-x nerd-icons-install-fonts    → Nerd フォントをインストール"

@@ -238,7 +238,14 @@ Works for both local and TRAMP remote directories."
     (vterm-mode
      "M-o" "→Editor"
      "SPC tt" "Toggle"
-     "C-\\ C-n" "Normal"))
+     "C-\\ C-n" "Normal")
+    (image-mode
+     "yy" "Copy"
+     "+" "Zoom in"
+     "-" "Zoom out"
+     "r" "Rotate"
+     "n" "Next"
+     "p" "Prev"))
   "Alist of (MAJOR-MODE KEY1 DESC1 KEY2 DESC2 ...) for header-line hints.")
 
 (defvar my/file-hints
@@ -318,5 +325,34 @@ Global window hints are always appended."
 (add-hook 'vterm-mode-hook #'my/set-header-line-hints)
 (add-hook 'magit-status-mode-hook #'my/set-header-line-hints)
 (add-hook 'git-commit-mode-hook #'my/set-header-line-hints)
+
+;; image-mode: copy image to system clipboard (macOS)
+(defun my/image-copy-to-clipboard ()
+  "Copy the current image buffer to the system clipboard (macOS)."
+  (interactive)
+  (let ((file (buffer-file-name)))
+    (unless file
+      (user-error "Buffer is not visiting a file"))
+    (let ((ext (downcase (file-name-extension file))))
+      (unless (member ext '("png" "jpg" "jpeg" "tiff" "gif" "bmp"))
+        (user-error "Unsupported image format: %s" ext))
+      (let ((type (pcase ext
+                    ((or "jpg" "jpeg") "JPEG")
+                    ("tiff" "TIFF")
+                    ("gif" "GIF")
+                    ("bmp" "BMP")
+                    (_ "PNG"))))
+        (if (zerop (call-process "osascript" nil nil nil "-e"
+                     (format "set the clipboard to (read (POSIX file \"%s\") as %s picture)"
+                             (expand-file-name file) type)))
+            (message "Copied %s to clipboard" (file-name-nondirectory file))
+          (user-error "Failed to copy image to clipboard"))))))
+
+(with-eval-after-load 'image-mode
+  (define-key image-mode-map (kbd "C-c C-w") #'my/image-copy-to-clipboard)
+  (evil-define-key* 'normal image-mode-map
+    (kbd "yy") #'my/image-copy-to-clipboard))
+
+(add-hook 'image-mode-hook #'my/set-header-line-hints)
 
 (provide 'init-utils)
