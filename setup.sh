@@ -378,6 +378,14 @@ else
   echo "    手動確認: emacs --batch -l ~/.emacs.d/init.el"
 fi
 
+# vterm モジュールの事前コンパイル（初回起動時のフリーズを防止）
+echo "  → vterm モジュールをコンパイル中..."
+"$EMACS_BIN" --batch -l "$EMACS_DIR/init.el" \
+  --eval "(setq vterm-always-compile-module t)" \
+  --eval "(require 'vterm)" 2>&1 \
+  | grep -v "^$" | head -5 || true
+echo "  ✓ vterm モジュールコンパイル完了"
+
 # ---------- [9/9] インストール確認 ----------
 echo ""
 echo "[9/9] インストール確認..."

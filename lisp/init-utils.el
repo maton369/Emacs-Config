@@ -85,12 +85,15 @@ Works for both local and TRAMP remote directories."
     (when (fboundp 'treemacs)
       (let ((default-directory dir))
         (treemacs)
-        ;; Remove all existing projects and add only the target
+        ;; Add target project first, then remove others
+        ;; (treemacs won't allow removing the last project)
+        (treemacs-do-add-project-to-workspace
+         dir (file-name-nondirectory (directory-file-name dir)))
         (treemacs-block
          (dolist (proj (treemacs-workspace->projects (treemacs-current-workspace)))
-           (treemacs-do-remove-project-from-workspace proj)))
-        (treemacs-do-add-project-to-workspace
-         dir (file-name-nondirectory (directory-file-name dir)))))
+           (unless (string= (file-truename (treemacs-project->path proj))
+                            (file-truename dir))
+             (treemacs-do-remove-project-from-workspace proj))))))
 
     ;; 2. Save editor window reference
     (my/focus-editor-window)
@@ -109,16 +112,21 @@ Works for both local and TRAMP remote directories."
       (let ((default-directory dir))
         (let ((right-win (split-window-right)))
           (with-selected-window right-win
-            (if (executable-find "claude")
+            (if (or (executable-find "claude")
+                    (file-exists-p (expand-file-name "~/.local/share/mise/installs/node/latest/bin/claude")))
                 (progn
-                  ;; Create magit buffer (accessible via H/L tab switch)
-                  (magit-status-setup-buffer (or (magit-toplevel) dir))
+                  ;; Create magit buffer if in a git repo (accessible via H/L tab switch)
+                  (ignore-errors
+                    (let ((git-dir (magit-toplevel)))
+                      (when git-dir (magit-status-setup-buffer git-dir))))
                   ;; Open Claude Code vterm on top
                   (vterm "claude-code")
-                  (vterm-send-string "claude")
+                  (vterm-send-string "claude --verbose")
                   (vterm-send-return))
-              ;; Fallback: just show Magit
-              (magit-status-setup-buffer (or (magit-toplevel) dir)))))))
+              ;; Fallback: just show Magit (only if in a git repo)
+              (ignore-errors
+                (let ((git-dir (magit-toplevel)))
+                  (when git-dir (magit-status-setup-buffer git-dir)))))))))
 
     ;; 5. Focus treemacs (少し遅延させてフレーム描画後に確実にフォーカス)
     (run-with-timer 0.1 nil
@@ -129,9 +137,14 @@ Works for both local and TRAMP remote directories."
 ;; Run layout on startup / new frame (daemon対応)
 (if (daemonp)
     ;; デーモンモード: クライアント接続時にレイアウト構築
+    ;; default-directory をフック時点で捕捉（タイマー遅延で失われるため）
     (add-hook 'server-after-make-frame-hook
               (lambda ()
-                (run-with-timer 0.3 nil #'my/setup-startup-layout)))
+                (let ((dir default-directory))
+                  (run-with-timer 0.3 nil
+                    (lambda ()
+                      (let ((default-directory dir))
+                        (my/setup-startup-layout)))))))
   ;; 通常モード: 起動時にレイアウト構築
   (add-hook 'emacs-startup-hook
             (lambda ()
@@ -210,11 +223,12 @@ Works for both local and TRAMP remote directories."
      "o" "Step out"
      "c" "Continue")
     (treemacs-mode
+     "a" "New file"
+     "A" "New dir"
+     "d" "Delete"
+     "r" "Rename"
      "H" "Root up"
-     "L" "Root down"
-     "SPC gs" "Git status"
-     "SPC e" "Toggle"
-     "?" "Help")
+     "L" "Root down")
     (my/git-panel-mode
      "SPC gs" "Files"
      "RET" "Open"

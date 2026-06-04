@@ -70,7 +70,30 @@
   :after (treemacs evil)
   :config
   ;; treemacs state から M-o でエディタウィンドウへ移動
-  (define-key evil-treemacs-state-map (kbd "M-o") #'my/focus-editor-window))
+  (define-key evil-treemacs-state-map (kbd "M-o") #'my/focus-editor-window)
+  ;; File/directory operations (use project root as default-directory)
+  (defun my/treemacs-create-file ()
+    "Create file under the current treemacs project/node."
+    (interactive)
+    (let ((default-directory
+            (or (ignore-errors (treemacs--nearest-path (treemacs-current-button)))
+                (ignore-errors (treemacs-project->path (treemacs-project-at-point)))
+                default-directory)))
+      (call-interactively #'treemacs-create-file)))
+
+  (defun my/treemacs-create-dir ()
+    "Create directory under the current treemacs project/node."
+    (interactive)
+    (let ((default-directory
+            (or (ignore-errors (treemacs--nearest-path (treemacs-current-button)))
+                (ignore-errors (treemacs-project->path (treemacs-project-at-point)))
+                default-directory)))
+      (call-interactively #'treemacs-create-dir)))
+
+  (define-key evil-treemacs-state-map (kbd "a") #'my/treemacs-create-file)
+  (define-key evil-treemacs-state-map (kbd "A") #'my/treemacs-create-dir)
+  (define-key evil-treemacs-state-map (kbd "d") #'treemacs-delete-file)
+  (define-key evil-treemacs-state-map (kbd "r") #'treemacs-rename-file))
 
 ;; Auto-refresh treemacs git status after magit operations (stage/unstage/commit)
 (use-package treemacs-magit

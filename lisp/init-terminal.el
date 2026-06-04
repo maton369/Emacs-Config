@@ -4,6 +4,8 @@
 ;; Vterm (like toggleterm.nvim)
 (use-package vterm
   :commands vterm
+  :init
+  (setq vterm-always-compile-module t)
   :config
   (setq vterm-max-scrollback 10000
         vterm-timer-delay 0.01)

@@ -32,7 +32,15 @@
 \\addtolength{\\textheight}{-\\footskip}
 \\addtolength{\\textheight}{-3cm}
 \\setlength{\\topmargin}{1.5cm}
-\\addtolength{\\topmargin}{-2.54cm}"))
+\\addtolength{\\topmargin}{-2.54cm}")
+
+  ;; Fix: Org 9.7 adds fontspec to preview preamble when lualatex is detected.
+  ;; fontspec requires lualatex but dvipng uses plain latex → DVI.
+  ;; Force org-latex-compiler to nil during preview so fontspec is not added.
+  (advice-add 'org-create-formula-image :around
+              (lambda (orig-fn string tofile options buffer &rest args)
+                (let ((org-latex-compiler nil))
+                  (apply orig-fn string tofile options buffer args)))))
 
 ;; --- citar: bibliography management ---
 (use-package citar
