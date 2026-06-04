@@ -240,7 +240,7 @@ Works for both local and TRAMP remote directories."
      "SPC tt" "Toggle"
      "C-\\ C-n" "Normal")
     (image-mode
-     "yy" "Copy"
+     "Y" "Copy"
      "+" "Zoom in"
      "-" "Zoom out"
      "r" "Rotate"
@@ -326,33 +326,37 @@ Global window hints are always appended."
 (add-hook 'magit-status-mode-hook #'my/set-header-line-hints)
 (add-hook 'git-commit-mode-hook #'my/set-header-line-hints)
 
-;; image-mode: copy image to system clipboard (macOS)
+;; image-mode: copy image to system clipboard
 (defun my/image-copy-to-clipboard ()
-  "Copy the current image buffer to the system clipboard (macOS)."
+  "Copy the image in the current buffer to the system clipboard."
   (interactive)
-  (let ((file (buffer-file-name)))
+  (unless (derived-mode-p 'image-mode)
+    (user-error "Not in image-mode"))
+  (let ((file (expand-file-name (buffer-file-name))))
     (unless file
       (user-error "Buffer is not visiting a file"))
-    (let ((ext (downcase (file-name-extension file))))
-      (unless (member ext '("png" "jpg" "jpeg" "tiff" "gif" "bmp"))
-        (user-error "Unsupported image format: %s" ext))
-      (let ((type (pcase ext
-                    ((or "jpg" "jpeg") "JPEG")
-                    ("tiff" "TIFF")
-                    ("gif" "GIF")
-                    ("bmp" "BMP")
-                    (_ "PNG"))))
-        (if (zerop (call-process "osascript" nil nil nil "-e"
-                     (format "set the clipboard to (read (POSIX file \"%s\") as %s picture)"
-                             (expand-file-name file) type)))
-            (message "Copied %s to clipboard" (file-name-nondirectory file))
-          (user-error "Failed to copy image to clipboard"))))))
+    (let ((exit-code
+           (pcase system-type
+             ('darwin
+              (call-process "osascript" nil nil nil "-e"
+                            (format "set the clipboard to (read (POSIX file %S) as «class PNGf»)" file)))
+             ('gnu/linux
+              (if (getenv "WAYLAND_DISPLAY")
+                  (call-process-shell-command
+                   (format "wl-copy --type image/png < %s" (shell-quote-argument file)))
+                (call-process-shell-command
+                 (format "xclip -selection clipboard -t image/png -i %s" (shell-quote-argument file)))))
+             (_ (user-error "Unsupported OS: %s" system-type)))))
+      (if (zerop exit-code)
+          (message "Image copied to clipboard: %s" (file-name-nondirectory file))
+        (user-error "Failed to copy image to clipboard")))))
 
 (with-eval-after-load 'image-mode
-  (define-key image-mode-map (kbd "C-c C-w") #'my/image-copy-to-clipboard)
-  (evil-define-key* 'normal image-mode-map
-    (kbd "yy") #'my/image-copy-to-clipboard))
+  (define-key image-mode-map (kbd "C-c C-w") #'my/image-copy-to-clipboard))
 
-(add-hook 'image-mode-hook #'my/set-header-line-hints)
+(add-hook 'image-mode-hook
+          (lambda ()
+            (my/set-header-line-hints)
+            (evil-local-set-key 'normal (kbd "Y") #'my/image-copy-to-clipboard)))
 
 (provide 'init-utils)
