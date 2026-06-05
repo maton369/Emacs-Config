@@ -362,4 +362,44 @@ Global window hints are always appended."
             (my/set-header-line-hints)
             (evil-local-set-key 'normal (kbd "Y") #'my/image-copy-to-clipboard)))
 
+;; Paste clipboard image: save to ./img/ and insert link
+(defun my/image-paste-from-clipboard ()
+  "Save clipboard image to ./img/ and insert a link at point."
+  (interactive)
+  (let* ((root (or (when-let ((proj (project-current)))
+                     (project-root proj))
+                   default-directory))
+         (dir (expand-file-name "img" root))
+         (fname (format-time-string "paste-%Y%m%d-%H%M%S.png"))
+         (fpath (expand-file-name fname dir)))
+    (unless (file-directory-p dir)
+      (make-directory dir t))
+    (let ((exit-code
+           (pcase system-type
+             ('darwin
+              (call-process "osascript" nil nil nil "-e"
+                            (format "set pngData to the clipboard as «class PNGf»
+set fp to open for access POSIX file %S with write permission
+write pngData to fp
+close access fp" fpath)))
+             ('gnu/linux
+              (if (getenv "WAYLAND_DISPLAY")
+                  (call-process-shell-command
+                   (format "wl-paste --type image/png > %s" (shell-quote-argument fpath)))
+                (call-process-shell-command
+                 (format "xclip -selection clipboard -t image/png -o > %s" (shell-quote-argument fpath)))))
+             (_ (user-error "Unsupported OS: %s" system-type)))))
+      (unless (and (zerop exit-code) (file-exists-p fpath) (> (file-attribute-size (file-attributes fpath)) 0))
+        (ignore-errors (delete-file fpath))
+        (user-error "No image in clipboard"))
+      (let ((rel (file-relative-name fpath)))
+        (cond
+         ((derived-mode-p 'org-mode)
+          (insert (format "[[file:%s]]" rel)))
+         ((derived-mode-p 'markdown-mode)
+          (insert (format "![image](%s)" rel)))
+         (t
+          (insert rel))))
+      (message "Pasted: %s" fname))))
+
 (provide 'init-utils)

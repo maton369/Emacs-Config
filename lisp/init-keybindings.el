@@ -57,6 +57,10 @@
   "ac" '(gptel :wk "AI chat")
   "as" '(gptel-send :wk "AI send")
 
+  ;; === Insert (SPC i) ===
+  "i"  '(:ignore t :wk "Insert")
+  "ip" '(my/image-paste-from-clipboard :wk "Paste image")
+
   ;; === Buffer (SPC b) ===
   "b"  '(:ignore t :wk "Buffer")
   "bd" '(kill-current-buffer :wk "Delete buffer")
