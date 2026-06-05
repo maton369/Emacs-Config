@@ -72,22 +72,29 @@
   ;; treemacs state から M-o でエディタウィンドウへ移動
   (define-key evil-treemacs-state-map (kbd "M-o") #'my/focus-editor-window)
   ;; File/directory operations (use project root as default-directory)
+  (defun my/treemacs--current-dir ()
+    "Get the directory of the current treemacs node or project."
+    (or (ignore-errors
+          (let ((path (treemacs--nearest-path (treemacs-current-button))))
+            (if (file-directory-p path)
+                (file-name-as-directory path)
+              (file-name-directory path))))
+        (ignore-errors (treemacs-project->path (treemacs-project-at-point)))
+        (ignore-errors
+          (treemacs-project->path
+           (car (treemacs-workspace->projects (treemacs-current-workspace)))))
+        default-directory))
+
   (defun my/treemacs-create-file ()
     "Create file under the current treemacs project/node."
     (interactive)
-    (let ((default-directory
-            (or (ignore-errors (treemacs--nearest-path (treemacs-current-button)))
-                (ignore-errors (treemacs-project->path (treemacs-project-at-point)))
-                default-directory)))
+    (let ((default-directory (my/treemacs--current-dir)))
       (call-interactively #'treemacs-create-file)))
 
   (defun my/treemacs-create-dir ()
     "Create directory under the current treemacs project/node."
     (interactive)
-    (let ((default-directory
-            (or (ignore-errors (treemacs--nearest-path (treemacs-current-button)))
-                (ignore-errors (treemacs-project->path (treemacs-project-at-point)))
-                default-directory)))
+    (let ((default-directory (my/treemacs--current-dir)))
       (call-interactively #'treemacs-create-dir)))
 
   (define-key evil-treemacs-state-map (kbd "a") #'my/treemacs-create-file)
