@@ -267,14 +267,14 @@ Works for both local and TRAMP remote directories."
   "Alist of (FILE-REGEXP KEY1 DESC1 KEY2 DESC2 ...) for header-line hints.")
 
 (defvar my/global-hints
-  '("C-x →" "Next buf"
-    "C-x ←" "Prev buf"
+  '("yy" "Copy line"
+    "y" "Copy(V)"
+    "p" "Paste"
+    "SPC ip" "Paste img"
     "C-w v" "VSplit"
-    "C-w s" "HSplit"
     "C-w h/j/k/l" "Move"
-    "C-w q" "Close"
     "SPC g g" "Magit")
-  "Window hints always shown in all buffers.")
+  "Global hints always shown in all buffers.")
 
 (defun my/get-context-hints ()
   "Get keybinding hints for the current mode/file.
