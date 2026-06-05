@@ -75,11 +75,12 @@ Otherwise, use the first real buffer's directory or fallback to default-director
             (setq dir default-directory))))
       (or dir default-directory))))
 
-(defun my/setup-startup-layout ()
+(defun my/setup-startup-layout (&optional explicit-dir)
   "Build the startup layout: treemacs | (editor + magit) / terminal.
+EXPLICIT-DIR overrides auto-detection (used by daemon hook).
 Works for both local and TRAMP remote directories."
   (delete-other-windows)
-  (let ((dir (my/startup-default-directory)))
+  (let ((dir (or explicit-dir (my/startup-default-directory))))
 
     ;; 1. Treemacs on left (with correct directory)
     (when (fboundp 'treemacs)
@@ -89,11 +90,13 @@ Works for both local and TRAMP remote directories."
         ;; (treemacs won't allow removing the last project)
         (treemacs-do-add-project-to-workspace
          dir (file-name-nondirectory (directory-file-name dir)))
-        (treemacs-block
-         (dolist (proj (treemacs-workspace->projects (treemacs-current-workspace)))
-           (unless (string= (file-truename (treemacs-project->path proj))
-                            (file-truename dir))
-             (treemacs-do-remove-project-from-workspace proj))))))
+        (let ((target (directory-file-name (file-truename dir))))
+          (treemacs-block
+           (dolist (proj (treemacs-workspace->projects (treemacs-current-workspace)))
+             (unless (string= (directory-file-name
+                               (file-truename (treemacs-project->path proj)))
+                              target)
+               (treemacs-do-remove-project-from-workspace proj)))))))
 
     ;; 2. Save editor window reference
     (my/focus-editor-window)
@@ -144,7 +147,7 @@ Works for both local and TRAMP remote directories."
                   (run-with-timer 0.3 nil
                     (lambda ()
                       (let ((default-directory dir))
-                        (my/setup-startup-layout)))))))
+                        (my/setup-startup-layout dir)))))))
   ;; 通常モード: 起動時にレイアウト構築
   (add-hook 'emacs-startup-hook
             (lambda ()
