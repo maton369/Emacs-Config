@@ -103,4 +103,28 @@
                 (pdf-view-midnight-minor-mode -1)
                 (pdf-view-fit-page-to-window)))))
 
+;; --- Org Babel: execute code blocks (Jupyter-like, for any text format) ---
+;; Article: babel を「任意の実行可能テキスト形式に適用できる Jupyter」と位置づけ。
+(with-eval-after-load 'org
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (python     . t)
+     (shell      . t)))
+  ;; Trusted personal config: don't prompt before each evaluation.
+  (setq org-confirm-babel-evaluate nil))
+
+;; --- verb: HTTP client in Emacs (plain-text Postman) ---
+;; Requests live in an Org buffer; ob-verb runs them as `verb' babel blocks.
+;; Article: "plain text で動く postman みたいなもの"。
+(use-package verb
+  :after org
+  :config
+  ;; Register the `verb' babel language alongside the others.
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   (append org-babel-load-languages '((verb . t))))
+  ;; C-c C-r <key> in Org buffers: verb command map (send request, etc.).
+  (define-key org-mode-map (kbd "C-c C-r") verb-command-map))
+
 (provide 'init-org)

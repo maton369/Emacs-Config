@@ -80,6 +80,9 @@
     (csv-mode       "CSV support"                   "init-languages")
     (dockerfile-mode "Dockerfile support"           "init-languages")
 
+    ;; init-org.el
+    (verb           "HTTP client (plain-text Postman)" "init-org")
+
     ;; init-debug.el
     (dape           "Debug adapter (like nvim-dap)" "init-debug")
 
@@ -90,6 +93,7 @@
     ;; init-ai.el
     (copilot        "GitHub Copilot"                "init-ai")
     (gptel          "LLM chat (like CopilotChat)"   "init-ai")
+    (ob-gptel       "Org Babel gptel blocks"        "init-ai")
 
     ;; init-utils.el
     (which-key      "Keybinding hints"              "init-utils")
