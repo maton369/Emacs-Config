@@ -325,7 +325,8 @@ Global window hints are always appended."
 
 (add-hook 'treemacs-mode-hook #'my/set-header-line-hints)
 (add-hook 'my/git-panel-mode-hook #'my/set-header-line-hints)
-(add-hook 'vterm-mode-hook #'my/set-header-line-hints)
+;; vterm では header-line を付けない: 最上行を1行奪うと TUI(Claude Code 等)の
+;; カーソル/入力行が1行ずれるため。ヒントはモードライン側に出る。
 (add-hook 'magit-status-mode-hook #'my/set-header-line-hints)
 (add-hook 'git-commit-mode-hook #'my/set-header-line-hints)
 
