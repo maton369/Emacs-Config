@@ -150,6 +150,10 @@
   :straight (:host github :repo "cashmeredev/kitty-graphics.el")
   :defer 1
   :config
+  ;; 配置モード: auto は tmux 外で direct(絶対座標)になり、ウィンドウ/バッファ
+  ;; 切替で画像がゴーストとして残る(Emacs の分割ウィンドウでも同様)。placeholder は
+  ;; セルに紐づくため内容と一緒に消える(Ghostty 1.3+ / kitty で動作)。
+  (setq kitty-gfx-kitty-placement-mode 'placeholder)
   ;; kitty-graphics-mode は有効化時に (selected-frame) の端末を検出し、
   ;; GUI/端末未検出だと自動で OFF に戻る。emacs --daemon では起動直後に
   ;; 端末フレームが無く検出に失敗するため、端末フレーム生成後に有効化する。
