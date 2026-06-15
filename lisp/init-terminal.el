@@ -9,6 +9,14 @@
   :config
   (setq vterm-max-scrollback 10000
         vterm-timer-delay 0.01)
+  ;; kill 時の「Buffer has a running process; kill it?」確認(yes-or-no-p)を無効化。
+  ;; CUI(端末)+evil では、この確認のミニバッファ入力に応答が届かず Emacs が
+  ;; ハングする(kill-buffer → kill-buffer-query-functions → yes-or-no-p で入力待ち
+  ;; ブロック)。vterm のプロセスは確認なしで終了させてよいので flag を無効化する。
+  (add-hook 'vterm-mode-hook
+            (lambda ()
+              (when-let ((proc (get-buffer-process (current-buffer))))
+                (set-process-query-on-exit-flag proc nil))))
   ;; M-o で vterm からエディタウィンドウへ移動（ESC不要）
   (evil-define-key* 'insert vterm-mode-map
     (kbd "M-o") (lambda () (interactive)
