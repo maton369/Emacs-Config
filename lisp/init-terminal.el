@@ -9,16 +9,24 @@
   :config
   (setq vterm-max-scrollback 10000
         vterm-timer-delay 0.01)
-  ;; M-o で vterm からエディタウィンドウへ移動（ESC不要）
+  ;; insert 状態の Esc は vterm(端末プログラム)へ送る。
+  ;; これがないと evil が Esc を横取りして normal 状態に戻すだけになり、
+  ;; vterm 上の Claude Code / vim 等に Esc が届かず作業中断が効かない。
+  ;; vterm を抜けるのは下の M-o / C-x o を使えるので Esc を normal 復帰に使わなくてよい。
+  (evil-define-key* 'insert vterm-mode-map
+    (kbd "<escape>") #'vterm--self-insert)
+  ;; M-o で vterm からエディタウィンドウへ即ジャンプ（ESC不要・便利キー）
   (evil-define-key* 'insert vterm-mode-map
     (kbd "M-o") (lambda () (interactive)
                   (evil-normal-state)
                   (my/focus-editor-window)))
-  ;; C-x o も残す（Emacs標準キー）
+  ;; C-x o は Emacs 標準どおり全ウィンドウを巡回させる。
+  ;; (以前はエディタ窓へジャンプする実装だったため、下のターミナルや
+  ;;  treemacs へ C-x o で移動できなかった。)
   (define-key vterm-mode-map (kbd "C-x o")
     (lambda () (interactive)
       (evil-normal-state)
-      (my/focus-editor-window))))
+      (other-window 1))))
 
 ;; Vterm-toggle (like toggleterm toggle behavior)
 (use-package vterm-toggle
