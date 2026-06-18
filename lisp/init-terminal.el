@@ -71,4 +71,32 @@
                  (reusable-frames . visible)
                  (window-height . 0.3))))
 
+;; --- CUI で TUI アプリ(Claude Code 等)を崩さないための vterm 衛生設定 ---
+(defun my/vterm-tui-hygiene ()
+  "Make vterm safe for full-screen TUIs in the terminal."
+  ;; 入力枠を最下行に固定し、前回位置を保持しない
+  (setq-local scroll-margin 0
+              scroll-conservatively 101
+              scroll-preserve-screen-position nil
+              vterm-max-scrollback 5000)
+  ;; header-line は vterm では出さない(ヒントはモードライン側に出る)
+  (setq-local header-line-format nil)
+  ;; グローバル装飾を vterm 内では無効化(軽量化・描画の乱れ防止)
+  (when (bound-and-true-p global-hl-line-mode) (setq-local global-hl-line-mode nil))
+  (hl-line-mode -1)
+  (display-line-numbers-mode -1)
+  (when (fboundp 'yascroll-bar-mode) (yascroll-bar-mode -1))
+  (buffer-face-mode -1)
+  ;; カーソルを箱型固定・伸縮無効・点滅停止でセル位置に一致させる
+  (setq-local cursor-type 'box
+              x-stretch-cursor nil)
+  (when (bound-and-true-p blink-cursor-mode) (blink-cursor-mode -1))
+  ;; CUI(TTY)でのみ tab-line(centaur-tabs)を除去する。
+  ;; 最上行を1行奪うと vterm のカーソル行が1行ずれるため。
+  ;; GUI はピクセル単位で描画されずれないので、タブはそのまま残す。
+  (unless (display-graphic-p)
+    (setq-local tab-line-format nil)
+    (when (fboundp 'centaur-tabs-local-mode) (centaur-tabs-local-mode 1))))
+(add-hook 'vterm-mode-hook #'my/vterm-tui-hygiene)
+
 (provide 'init-terminal)
